@@ -61,22 +61,30 @@ export default function PlanList({ initialPlans }: PlanListProps) {
   // 상태 및 태그 계산 함수
   const getTripInfo = (start: string, end: string) => {
     const today = new Date();
+    today.setHours(0, 0, 0, 0); // 시간을 00:00:00으로 설정하여 날짜만 비교
+
     const startDate = new Date(start);
+    startDate.setHours(0, 0, 0, 0);
+
     const endDate = new Date(end);
+    endDate.setHours(0, 0, 0, 0);
 
     // 상태 계산
     let status = "";
     let statusColor = "";
 
     if (isBefore(today, startDate)) {
+      // 오늘이 시작일보다 이전 → 여행예정
       status = "여행예정";
       statusColor = "bg-blue-100 text-blue-700";
-    } else if (isAfter(today, endDate)) {
-      status = "여행종료";
-      statusColor = "bg-gray-100 text-gray-600";
     } else if (isWithinInterval(today, { start: startDate, end: endDate })) {
+      // 오늘이 시작일과 종료일 사이 (종료일 당일 포함) → 여행중
       status = "여행중";
       statusColor = "bg-green-100 text-green-700";
+    } else {
+      // 오늘이 종료일보다 이후 → 여행종료
+      status = "여행종료";
+      statusColor = "bg-gray-100 text-gray-600";
     }
 
     // 숙박일 계산
