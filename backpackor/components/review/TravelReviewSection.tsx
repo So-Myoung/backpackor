@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import type { Review } from "@/types/review";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
+import { HelpfulButton } from "@/components/review/HelpfulButton";
 
 interface ReviewWithProfile extends Review {
   profiles: {
@@ -35,32 +36,6 @@ const TravelReviewSection: React.FC<TravelReviewSectionProps> = ({
     useState(initialReviewCount);
   const [actualAverageRating, setActualAverageRating] =
     useState(initialAverageRating);
-  const [helpfulLoading, setHelpfulLoading] = useState<{
-    [key: string]: boolean;
-  }>({});
-  const [userHelpfulReviews, setUserHelpfulReviews] = useState<Set<string>>(
-    new Set()
-  );
-  const [userId, setUserId] = useState<string | null>(null);
-
-  // 로그인 사용자 확인
-  useEffect(() => {
-    const checkUser = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-        // localStorage에서 사용자가 도움됨을 누른 리뷰 목록 불러오기
-        const helpfulKey = `helpful_reviews_${user.id}`;
-        const saved = localStorage.getItem(helpfulKey);
-        if (saved) {
-          setUserHelpfulReviews(new Set(JSON.parse(saved)));
-        }
-      }
-    };
-    checkUser();
-  }, []);
 
   useEffect(() => {
     const fetchReviews = async () => {
@@ -90,82 +65,6 @@ const TravelReviewSection: React.FC<TravelReviewSectionProps> = ({
 
     fetchReviews();
   }, [placeId]);
-
-  const handleHelpful = async (reviewId: string) => {
-    // 로그인 확인
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      const confirmLogin = confirm(
-        "로그인이 필요한 기능입니다.\n로그인 페이지로 이동하시겠습니까?"
-      );
-      if (confirmLogin) {
-        router.push(
-          `/login?redirect=${encodeURIComponent(window.location.pathname)}`
-        );
-      }
-      return;
-    }
-
-    // 이미 로딩 중이면 무시
-    if (helpfulLoading[reviewId]) return;
-
-    setHelpfulLoading((prev) => ({ ...prev, [reviewId]: true }));
-
-    try {
-      const isHelpful = userHelpfulReviews.has(reviewId);
-
-      const response = await fetch(`/apis/review/helpful`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          reviewId,
-          action: isHelpful ? "remove" : "add", // 추가 또는 제거
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "도움됨 처리에 실패했습니다.");
-      }
-
-      const data = await response.json();
-
-      // 리뷰 목록 업데이트
-      setReviews((prevReviews) =>
-        prevReviews.map((review) =>
-          review.review_id === reviewId
-            ? { ...review, helpful_count: data.helpful_count }
-            : review
-        )
-      );
-
-      // 사용자가 누른 리뷰 목록 업데이트
-      setUserHelpfulReviews((prev) => {
-        const newSet = new Set(prev);
-        if (isHelpful) {
-          newSet.delete(reviewId);
-        } else {
-          newSet.add(reviewId);
-        }
-
-        // localStorage에 저장
-        const helpfulKey = `helpful_reviews_${user.id}`;
-        localStorage.setItem(helpfulKey, JSON.stringify([...newSet]));
-
-        return newSet;
-      });
-    } catch (err) {
-      console.error("도움됨 처리 실패:", err);
-      alert(err instanceof Error ? err.message : "도움됨 처리에 실패했습니다.");
-    } finally {
-      setHelpfulLoading((prev) => ({ ...prev, [reviewId]: false }));
-    }
-  };
 
   if (loading) {
     return (
@@ -249,9 +148,6 @@ const TravelReviewSection: React.FC<TravelReviewSectionProps> = ({
           </div>
         ) : (
           reviews.map((review) => {
-            const isHelpful = userHelpfulReviews.has(review.review_id);
-            const isLoadingThis = helpfulLoading[review.review_id];
-
             return (
               <div
                 key={review.review_id}
@@ -289,34 +185,13 @@ const TravelReviewSection: React.FC<TravelReviewSectionProps> = ({
                   {review.review_content}
                 </p>
 
-                {/* 리뷰 푸터 - 도움됨 버튼 */}
+                {/* 리뷰 푸터 - 도움됨 버튼 (여행지 상세에서는 읽기 전용) */}
                 <div className="flex items-center gap-4">
-                  <button
-                    onClick={() => handleHelpful(review.review_id)}
-                    disabled={isLoadingThis}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all ${
-                      isLoadingThis
-                        ? "border-gray-200 bg-gray-50 cursor-not-allowed"
-                        : isHelpful
-                        ? "border-blue-500 bg-blue-50 hover:bg-blue-100 cursor-pointer"
-                        : "border-gray-300 hover:border-blue-500 hover:bg-blue-50 cursor-pointer"
-                    }`}
-                  >
-                    <span className="text-base">
-                      {isLoadingThis ? "⏳" : isHelpful ? "👍" : "👍"}
-                    </span>
-                    <span
-                      className={`text-sm font-medium ${
-                        isLoadingThis
-                          ? "text-gray-400"
-                          : isHelpful
-                          ? "text-blue-600"
-                          : "text-gray-700"
-                      }`}
-                    >
-                      도움됐어요 {review.helpful_count}
-                    </span>
-                  </button>
+                  <HelpfulButton
+                    reviewId={review.review_id}
+                    initialHelpfulCount={review.helpful_count || 0}
+                    readOnly={true}
+                  />
                 </div>
               </div>
             );
