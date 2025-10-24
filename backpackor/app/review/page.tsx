@@ -194,11 +194,12 @@ function ReviewCard({
           </span>
         </div>
 
-        {/* 도움됨 버튼 */}
+        {/* 도움됨 버튼 (리뷰 목록에서는 읽기 전용) */}
         <div className="mt-3 pt-3 border-t border-gray-100">
           <HelpfulButton
             reviewId={review.review_id}
             initialHelpfulCount={review.helpful_count || 0}
+            readOnly={true}
           />
         </div>
 

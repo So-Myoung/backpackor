@@ -9,12 +9,14 @@ interface HelpfulButtonProps {
   reviewId: string;
   initialHelpfulCount: number;
   onCountChange?: (newCount: number) => void;
+  readOnly?: boolean; // 리뷰 목록에서는 클릭 불가능하게
 }
 
 export const HelpfulButton = ({
   reviewId,
   initialHelpfulCount,
   onCountChange,
+  readOnly = false,
 }: HelpfulButtonProps) => {
   const router = useRouter();
   const [helpfulCount, setHelpfulCount] = useState(initialHelpfulCount);
@@ -43,6 +45,9 @@ export const HelpfulButton = ({
   }, [reviewId]);
 
   const handleHelpful = async () => {
+    // readOnly 모드에서는 클릭 이벤트 무시
+    if (readOnly) return;
+
     // 로그인 확인
     const {
       data: { user },
@@ -117,9 +122,11 @@ export const HelpfulButton = ({
   return (
     <button
       onClick={handleHelpful}
-      disabled={isLoading}
+      disabled={isLoading || readOnly}
       className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all ${
-        isLoading
+        readOnly
+          ? "border-gray-200 bg-gray-50 cursor-default"
+          : isLoading
           ? "border-gray-200 bg-gray-50 cursor-not-allowed"
           : isHelpful
           ? "border-blue-500 bg-blue-50 hover:bg-blue-100 cursor-pointer"
@@ -131,7 +138,9 @@ export const HelpfulButton = ({
       </span>
       <span
         className={`text-sm font-medium ${
-          isLoading
+          readOnly
+            ? "text-gray-500"
+            : isLoading
             ? "text-gray-400"
             : isHelpful
             ? "text-blue-600"
