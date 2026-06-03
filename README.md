@@ -1,5 +1,4 @@
 # BackpacKOR [ 국내 여행 코스 추천 플랫폼 ]
-<img width="300" height="300" alt="최종" src="https://github.com/user-attachments/assets/70dcdcb8-0f36-4e2d-8808-33960b9daa21" />
 
 <h3 align="left">"Be a Backpacker with backpacKOR!"</h3>
 
